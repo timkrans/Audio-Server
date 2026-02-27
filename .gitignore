@@ -1,3 +1,4 @@
 go.sum
 .env
 /audio
+audio.db
