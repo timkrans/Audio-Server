@@ -7,6 +7,7 @@ import(
 
 	"audio-server/database"
 	"audio-server/models"
+	"audio-server/routes"
 )
 
 func main(){
@@ -16,5 +17,6 @@ func main(){
 	database.DB.AutoMigrate(&models.Audio{})
 	r := gin.Default()
 	r.SetTrustedProxies(nil)
+	routes.RegisterMovieRoutes(r)
 	r.Run(":8080")
 }
