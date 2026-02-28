@@ -4,6 +4,7 @@ import(
 
 	"github.com/gin-gonic/gin"
 	"net/http"
+	"audio-server/handlers"
 )
 
 func RegisterMovieRoutes(r *gin.Engine) {
@@ -18,4 +19,10 @@ func RegisterMovieRoutes(r *gin.Engine) {
 	r.GET("/health", func(c *gin.Context) {
 		c.JSON(http.StatusOK, gin.H{"status": "ok"})
 	})
+		r.POST("/audios", handlers.CreateAudio)
+	r.GET("/audios", handlers.GetAudios)
+	r.GET("/audios/:id", handlers.GetAudio)
+	r.PUT("/audios/:id", handlers.UpdateAudio)
+	r.DELETE("/audios/:id", handlers.DeleteAudio)
+		r.GET("/audios/:id/hls/*filepath", handlers.StreamHLS)
 }
