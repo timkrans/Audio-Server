@@ -15,14 +15,14 @@ func RegisterMovieRoutes(r *gin.Engine) {
 		c.Header("Access-Control-Allow-Methods", "GET, OPTIONS")
 		c.Header("Cache-Control", "no-cache")
 	})
-		//adding a health check for later testing
+	//adding a health check for later testing
 	r.GET("/health", func(c *gin.Context) {
 		c.JSON(http.StatusOK, gin.H{"status": "ok"})
 	})
-		r.POST("/audios", handlers.CreateAudio)
+	r.POST("/audios", handlers.CreateAudio)
 	r.GET("/audios", handlers.GetAudios)
 	r.GET("/audios/:id", handlers.GetAudio)
 	r.PUT("/audios/:id", handlers.UpdateAudio)
 	r.DELETE("/audios/:id", handlers.DeleteAudio)
-		r.GET("/audios/:id/hls/*filepath", handlers.StreamHLS)
+	r.GET("/audios/:id/hls/*filepath", handlers.StreamHLS) 
 }

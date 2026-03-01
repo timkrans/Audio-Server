@@ -12,10 +12,8 @@ func GenerateHLS(inputFile string, outputDir string) (string, error) {
 		return "", err
 	}
 
-	// HLS playlist filename
 	m3u8File := filepath.Join(outputDir, "index.m3u8")
-
-	// ffmpeg command: segment audio into 10-second chunks
+	//make this a an env variable eventially so path to ffmpeg
 	cmd := exec.Command(
 		"ffmpeg",
 		"-i", inputFile,
