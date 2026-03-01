@@ -63,7 +63,7 @@ func CreateAudio(c *gin.Context) {
 		Title:              input.Title,
 		AudioFilePath:      audioPath,
 		CoverImageFilePath: coverPath,
-		HLSPlaylistPath:    hlsDir, // store folder only
+		HLSPlaylistPath:    hlsDir,
 	}
 
 	if err := database.DB.Create(&audio).Error; err != nil {
@@ -137,8 +137,6 @@ func UpdateAudio(c *gin.Context) {
 			return
 		}
 		audio.AudioFilePath = newPath
-
-		// Regenerate HLS
 		hlsDir := fmt.Sprintf("./audios/hls/%d",  time.Now().UnixNano())
 		_, err = utils.GenerateHLS(audio.AudioFilePath, hlsDir)
 		if err != nil {
@@ -181,7 +179,10 @@ func DeleteAudio(c *gin.Context) {
 		os.Remove(audio.CoverImageFilePath)
 	}
 	if audio.HLSPlaylistPath != "" {
-		os.RemoveAll(audio.HLSPlaylistPath)
+        hlsDir := filepath.Dir(audio.HLSPlaylistPath)
+         //ensure permissions allow deletion 
+        os.Chmod(hlsDir, 0777) 
+        os.RemoveAll(hlsDir)
 	}
 
 	database.DB.Delete(&audio)
@@ -189,25 +190,40 @@ func DeleteAudio(c *gin.Context) {
 }
 
 func StreamHLS(c *gin.Context) {
-	id := c.Param("id")
-	var audio models.Audio
-	if err := database.DB.First(&audio, id).Error; err != nil {
-		c.JSON(http.StatusNotFound, gin.H{"error": "audio not found"})
-		return
-	}
+    id := c.Param("id")
+    fp := strings.TrimPrefix(c.Param("filepath"), "/")
 
-	requestedFile := c.Param("filepath")
-	if requestedFile == "" || requestedFile == "/" {
-		requestedFile = "index.m3u8"
-	} else {
-		requestedFile = strings.TrimPrefix(requestedFile, "/")
-	}
+    var audio models.Audio
+    if err := database.DB.First(&audio, id).Error; err != nil {
+        c.JSON(http.StatusNotFound, gin.H{"error": "audio not found"})
+        return
+    }
 
-	path := filepath.Join(audio.HLSPlaylistPath, requestedFile)
-	if _, err := os.Stat(path); os.IsNotExist(err) {
-		c.JSON(http.StatusNotFound, gin.H{"error": "file not found"})
-		return
-	}
+    if audio.HLSPlaylistPath == "" {
+        c.JSON(http.StatusBadRequest, gin.H{"error": "HLS not available"})
+        return
+    }
+	
+    baseDir := audio.HLSPlaylistPath
 
-	c.File(path)
+    if fp == "" || fp == "hls" {
+        fp = "index.m3u8"
+    }
+
+    fullPath := filepath.Join(baseDir, fp)
+
+    if _, err := os.Stat(fullPath); os.IsNotExist(err) {
+        c.JSON(http.StatusNotFound, gin.H{"error": "file not found"})
+        return
+    }
+    switch {
+    case strings.HasSuffix(fullPath, ".m3u8"):
+        c.Header("Content-Type", "application/vnd.apple.mpegurl")
+    case strings.HasSuffix(fullPath, ".ts"):
+        c.Header("Content-Type", "video/mp2t")
+    case strings.HasSuffix(fullPath, ".aac"):
+        c.Header("Content-Type", "audio/aac")
+    }
+
+    c.File(fullPath)
 }
